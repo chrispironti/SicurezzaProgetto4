@@ -30,6 +30,8 @@ public class SicurezzaProgetto4 {
             toTest.put(elem.getKey(), elem.getValue());
         }
         System.out.println("Risultato:" + new String(s.combine(toTest),"UTF8"));
+        
+        toTest.clear();
         System.out.println("\nTest Shamir(3,5). Tentativo di ricostruzione con tre (3,4,5) shares: ");
         for(int i = 0; i < 3; i++){
             Map.Entry<BigInteger,BigInteger> elem = (Map.Entry<BigInteger, BigInteger>)it.next();

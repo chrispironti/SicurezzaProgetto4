@@ -56,7 +56,7 @@ public class SecretSharing {
             for(Map.Entry<BigInteger, BigInteger> e2: shares.entrySet()){
                 BigInteger id2 = e2.getKey();
                 if(id2.compareTo(id1) != 0){
-                    num = (num.multiply(id2)).mod(this.p);
+                    num = (num.multiply(id2.negate())).mod(this.p);
                     den = (id1.subtract(id2)).mod(this.p);
                     num = (num.multiply((den.modInverse(this.p)))).mod(this.p);
                 }
@@ -77,7 +77,7 @@ public class SecretSharing {
                 isPrime = true;
         }
         while(isPrime == false);
-            return p;
+        return p;
     }
     
     private BigInteger randomZp() {
@@ -95,7 +95,7 @@ public class SecretSharing {
         
         BigInteger result = BigInteger.ZERO;
         BigInteger pow, mul;
-        for(int i = 0 ; i < poly.size(); i++){
+        for(int i = 0 ; i < poly.size(); i++){ //poly.size sarebbe k?
             pow = x.modPow(BigInteger.valueOf(i), this.p);
             mul = (poly.get(i).multiply(pow)).mod(this.p);
             result = (result.add(mul)).mod(this.p);
