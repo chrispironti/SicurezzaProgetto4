@@ -7,6 +7,7 @@ package sicurezzaprogetto4;
 import java.io.*;
 import java.util.*;
 import java.math.BigInteger;
+
 /**
  *
  * @author Daniele
@@ -16,7 +17,7 @@ public class SicurezzaProgetto4 {
     /**
      * @param args the command line arguments
      */
-    public static void main(String[] args) throws UnsupportedEncodingException, FileNotFoundException, IOException {
+    public static void main(String[] args) throws UnsupportedEncodingException, FileNotFoundException, IOException, Exception {
         // TODO code application logic here
         /*
         SecretSharing s = new SecretSharing(3,5);
@@ -38,17 +39,23 @@ public class SicurezzaProgetto4 {
             toTest.put(elem.getKey(), elem.getValue());
         }
         System.out.println("Risultato: " + new String(s.combine(toTest),"UTF8"));*/
-        SecretSharing s = new SecretSharing(3,5);
-        String nomeFile = "Da Fare.txt";
+        SecretSharing s = new SecretSharing(3,5, 256);
+        String nomeFile = "timestamping.pdf";
+        //String nomeFile = "Da Fare.txt";
         BufferedInputStream is= new BufferedInputStream(new FileInputStream(nomeFile));
         HashMap<BigInteger,LinkedList<BigInteger>> shares = new HashMap<>();
-        for(int i = 1; i <= s.n; i++){
+        for(int i = 1; i <= 5; i++){
             shares.put(BigInteger.valueOf(i), new LinkedList<>());
         }
         HashMap<BigInteger,BigInteger> temp = null;
-        byte[] buffer = new byte[16];
-        while(is.read(buffer)!=-1){
-            temp = s.split(buffer);
+        byte[] buffer = new byte[32];
+        int r;
+        while((r = is.read(buffer, 0, buffer.length))!=-1){
+            if(r < 32){
+                byte[] newbuffer = Arrays.copyOfRange(buffer, 0, r);
+                temp = s.split(newbuffer);
+            }else
+                temp = s.split(buffer);
              for(Map.Entry<BigInteger, BigInteger> e: temp.entrySet()){
                  shares.get(e.getKey()).add(e.getValue());
              }
@@ -64,7 +71,9 @@ public class SicurezzaProgetto4 {
            for(Map.Entry<BigInteger, LinkedList<BigInteger>> e: toVerify.entrySet()){
                toSend.put(e.getKey(), e.getValue().remove());
            }
-           out.write(s.combine(toSend));
+           byte[] info = s.combine(toSend);
+           System.out.println(new String(info)+" "+info.length);
+           out.write(info);
         }
         out.close();
     }    

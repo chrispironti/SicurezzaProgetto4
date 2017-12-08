@@ -19,25 +19,22 @@ public class SecretSharing {
     public int k;
     public int n;
     private int modLength;
+    private ArrayList<BigInteger> poly;
     private BigInteger p;
     
-    public SecretSharing(int k, int n){
+    public SecretSharing(int k, int n, int modLength){
         this.k = k;
         this.n = n;
+        this.modLength = modLength;
+        computeParameters();       
     }
     
-    public HashMap<BigInteger, BigInteger> split(byte[] secretInformation){
+    public HashMap<BigInteger, BigInteger> split(byte[] secretInformation) throws Exception{
         
         BigInteger secret = new BigInteger(secretInformation);
-        this.modLength = secret.bitLength();
-        this.p = genPrime();
-        ArrayList<BigInteger> poly = new ArrayList<>();
-        poly.add(secret);
-        //Calcolo coefficienti ai del polinomio
-        for(int i = 0; i < this.k - 1; i++){
-            poly.add(randomZp());
-        }
-        //Calcolo shares
+        if(secret.bitLength() > this.modLength)
+            throw new Exception();
+        this.poly.set(0, secret);
         HashMap<BigInteger, BigInteger> shares = new HashMap<>();
         for(int i = 1; i <= this.n ; i++){
             shares.put(BigInteger.valueOf(i),evalPoly(BigInteger.valueOf(i), poly));
@@ -85,7 +82,7 @@ public class SecretSharing {
         BigInteger r;
         do 
         {
-            r = new BigInteger(this.modLength, new Random());
+            r = new BigInteger(this.modLength + 1, new Random());
         }
         while (r.compareTo(BigInteger.ZERO) < 0 || r.compareTo(this.p) >= 0);
         return r;
@@ -101,5 +98,15 @@ public class SecretSharing {
             result = (result.add(mul)).mod(this.p);
         }
         return result;
+    }
+    
+    private void computeParameters(){
+        this.p = genPrime();
+        ArrayList<BigInteger> poly = new ArrayList<>();
+        poly.add(null);
+        for(int i = 0; i < this.k - 1; i++){
+            poly.add(randomZp());
+        }
+        this.poly = poly;
     }
 }

@@ -1,11 +1,1 @@
-Da fare SUBITO:
-
--Convincere Ciro a cambiare la cinematica diretta
--Limitare velocità e accelerazioni ai giunti;
--Testare parte sul controllo;
-
-Con calma, eventualmente anche dopo:
-
--Spline per avere accelerazione continua;
--Gestire caso phi0 = phif;
--Ellissoidi di manipolabilità in velocità e in forza.
+Ciao a tutti come va la vita ?

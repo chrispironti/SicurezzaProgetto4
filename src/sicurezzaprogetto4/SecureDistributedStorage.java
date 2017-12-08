@@ -37,7 +37,7 @@ public class SecureDistributedStorage implements Serializable{
     }
     
     public void distributeShares() throws FileNotFoundException, IOException{
-        SecretSharing s = new SecretSharing(k, servers.size());
+        //SecretSharing s = new SecretSharing(k, servers.size());
         int currentSecret=0;
         BufferedInputStream is= new BufferedInputStream(new FileInputStream(nomeFile));
         
