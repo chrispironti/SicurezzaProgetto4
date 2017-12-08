@@ -1,0 +1,1 @@
+{"nomeFile":"C:\\Users\\Christopher\\Documents\\NetBeansProjects\\SicurezzaProgetto4\\wewe.txt","macKey":"macKey","numServer":3,"Mac":"Mac"}

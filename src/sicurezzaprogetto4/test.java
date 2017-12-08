@@ -17,10 +17,9 @@ public class test {
      */
     public static void main(String[] args) {
         // TODO code application logic here
-        byte[] test = "à".getBytes();
-        BigInteger b = new BigInteger(1,test);
+        byte[] test = "bàèéokbà°b".getBytes();
+        BigInteger b = new BigInteger(1, test);
         byte[] converted = b.toByteArray();
-        
         
         if(new String(test).compareTo(new String(converted)) == 0){
             System.out.println("True");

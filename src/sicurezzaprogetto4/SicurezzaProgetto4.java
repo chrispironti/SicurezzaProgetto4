@@ -76,5 +76,19 @@ public class SicurezzaProgetto4 {
            out.write(info);
         }
         out.close();
-    }    
+        
+        nomeFile = "C:\\Users\\Christopher\\Documents\\NetBeansProjects\\SicurezzaProgetto4\\wewe.txt";
+        
+        List<String> servers = new LinkedList<>();
+        servers.add("Dropbox");
+        servers.add("OneDrive");
+        servers.add("GoogleDrive");
+        servers.add("Mega");
+        servers.add("MediaFire");
+        
+        String client="Client1";
+        
+        SecureDistributedStorage sds = new SecureDistributedStorage(nomeFile, servers, client, 3, 256);
+        sds.distributeShares();
+    }
 }
