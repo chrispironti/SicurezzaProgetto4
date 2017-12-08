@@ -40,8 +40,8 @@ public class SicurezzaProgetto4 {
         }
         System.out.println("Risultato: " + new String(s.combine(toTest),"UTF8"));*/
         SecretSharing s = new SecretSharing(3,5, 256);
-        String nomeFile = "timestamping.pdf";
-        //String nomeFile = "Da Fare.txt";
+        //String nomeFile = "timestamping.pdf";
+        String nomeFile = "Da Fare.txt";
         BufferedInputStream is= new BufferedInputStream(new FileInputStream(nomeFile));
         HashMap<BigInteger,LinkedList<BigInteger>> shares = new HashMap<>();
         for(int i = 1; i <= 5; i++){

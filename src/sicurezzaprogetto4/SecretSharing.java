@@ -31,7 +31,7 @@ public class SecretSharing {
     
     public HashMap<BigInteger, BigInteger> split(byte[] secretInformation) throws Exception{
         
-        BigInteger secret = new BigInteger(secretInformation);
+        BigInteger secret = new BigInteger(1,secretInformation);
         if(secret.bitLength() > this.modLength)
             throw new Exception();
         this.poly.set(0, secret);
@@ -61,6 +61,7 @@ public class SecretSharing {
             secret = (secret.add(num)).mod(this.p);
         }
         return secret.toByteArray();
+
     }
     
     private BigInteger genPrime(){
