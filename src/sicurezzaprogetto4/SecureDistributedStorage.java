@@ -6,8 +6,10 @@
 package sicurezzaprogetto4;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
@@ -16,6 +18,7 @@ import java.math.BigInteger;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -142,39 +145,61 @@ public class SecureDistributedStorage implements Serializable{
             this.s = new SecretSharing(k, n, this.modLength);
         }
 
-        public HashMap<BigInteger, String> generateShares(String nomeFile, HashMap<String,String> servers) throws IOException, Exception{
+        public void generateShares(String fileToSplit) throws IOException, Exception{
+            //Inizializzazione stream
             BufferedInputStream is = null;
-            HashMap<BigInteger,LinkedList<BigInteger>> shares = null;
+            ArrayList<BufferedOutputStream> outList = new ArrayList<>();
+            for(int i = 0; i < n; i++){
+                outList.add(null);
+            }
             try{
-                is= new BufferedInputStream(new FileInputStream(nomeFile));
-                //Mapping tra identità server e nomi server
-                HashMap<BigInteger,String> mapping = generateIdentities(servers.keySet().iterator()); 
+                for(int i = 0; i < n; i++){
+                    outList.add(new BufferedOutputStream(new FileOutputStream((i+1)+"/"+fileToSplit)));
+                }
+                is= new BufferedInputStream(new FileInputStream(fileToSplit));
                 //Generazione e scrittura shares
                 HashMap<BigInteger,BigInteger> temp = null;
                 byte[] buffer = new byte[this.bufferSize];
                 int r;
                 while((r = is.read(buffer, 0, buffer.length))!=-1){
-                    if(r < 32){
+                    if(r < this.bufferSize){
+                        //Per ultimo byte letto
                         byte[] newbuffer = Arrays.copyOfRange(buffer, 0, r);
                         temp = s.split(newbuffer);
                     }else
                         temp = s.split(buffer);
-                     for(Map.Entry<BigInteger, BigInteger> e: temp.entrySet()){
-                         shares.get(e.getKey()).add(e.getValue());
+                     for(int i = 1; i<=n; i++){
+                        //Aggiunta padding e scrittura
+                        byte[] padded = BigIntegerToByteArray(temp.get(BigInteger.valueOf(i)));
+                        outList.get(i-1).write(padded);
                      }
                 }
             }finally{
-                is.close();
+                if(is!=null)
+                    is.close();
+                for(int i = 0; i < n; i++){
+                    BufferedOutputStream out = outList.get(i);
+                    if(out!=null)
+                        out.close();
+                }
             }
         }
         
-        private HashMap<BigInteger, String> generateIdentities(Iterator<String> serverNames){
-            int i = 1;
-            HashMap<BigInteger,String> mapping = new HashMap<>();
-            while(serverNames.hasNext()){
-                mapping.put(BigInteger.valueOf(i), serverNames.next());
+        public void reconstructFile(ArrayList<BigInteger> servers){
+            
+        }
+        
+        private byte[] BigIntegerToByteArray(BigInteger bi){
+            byte[] toEval = bi.toByteArray();
+            byte[] padded = new byte[this.bufferSize];
+            if(toEval.length > this.bufferSize)
+               toEval = Arrays.copyOfRange(toEval, 1, padded.length);
+            if(toEval.length < this.bufferSize){
+               for(int i = padded.length - toEval.length; i < padded.length ; i++)
+                   padded[i] = toEval[i];
+               toEval = padded;
             }
-            return mapping;
+            return toEval;
         }
     }
 }

@@ -4,6 +4,10 @@
  * and open the template in the editor.
  */
 package sicurezzaprogetto4;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.*;
 import java.math.BigInteger;
 /**
@@ -15,17 +19,17 @@ public class test {
     /**
      * @param args the command line arguments
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws FileNotFoundException, IOException {
         // TODO code application logic here
-        byte[] test = "bàèéokbà°b".getBytes();
+        byte[] test = "abcdefgh".getBytes();        
         BigInteger b = new BigInteger(1, test);
         byte[] converted = b.toByteArray();
-        
-        if(new String(test).compareTo(new String(converted)) == 0){
-            System.out.println("True");
-        }else
-            System.out.println("False");
-        
+        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("testobj"));
+        FileOutputStream fout = new FileOutputStream("testbyte");
+        oos.writeObject(b);
+        fout.write(test);
+        oos.close();
+        fout.close();
     }
     
 }
