@@ -31,7 +31,7 @@ public class SecretSharing {
     
     public HashMap<BigInteger, BigInteger> split(byte[] secretInformation) throws Exception{
         
-        BigInteger secret = new BigInteger(1,secretInformation);
+        BigInteger secret = new BigInteger(secretInformation);
         if(secret.bitLength() > this.modLength)
             throw new Exception();
         this.poly.set(0, secret);
@@ -42,7 +42,7 @@ public class SecretSharing {
         return shares;
     }
     
-    public byte[] combine(HashMap<BigInteger, BigInteger> shares){
+    public BigInteger combine(HashMap<BigInteger, BigInteger> shares){
         BigInteger secret = BigInteger.ZERO;
         BigInteger den;
         if(shares.size() < this.k)
@@ -60,8 +60,7 @@ public class SecretSharing {
             }
             secret = (secret.add(num)).mod(this.p);
         }
-        return secret.toByteArray();
-
+        return secret;
     }
     
     private BigInteger genPrime(){
@@ -109,5 +108,5 @@ public class SecretSharing {
             poly.add(randomZp());
         }
         this.poly = poly;
-    }
+    }    
 }

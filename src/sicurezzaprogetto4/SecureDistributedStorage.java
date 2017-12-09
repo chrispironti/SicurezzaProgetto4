@@ -18,6 +18,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -130,12 +131,46 @@ public class SecureDistributedStorage implements Serializable{
             currentSecret=is.read();
             //write negli stream se il valore non è -1
         }
-        
-        
-        
-        
     }
     
+    private class SharesManager {
+        private final int bufferSize = 32;
+        private final int modLength = 256;
+        private SecretSharing s;
     
-    
+        public SharesManager(int k, int n){
+            this.s = new SecretSharing(k, n, this.modLength);
+        }
+
+        public HashMap<BigInteger, String> generateShares(String nomeFile, HashMap<String,String> servers) throws IOException, Exception{
+            BufferedInputStream is = null;
+            HashMap<BigInteger,LinkedList<BigInteger>> shares = null;
+            try{
+                is= new BufferedInputStream(new FileInputStream(nomeFile));
+                //Mapping tra identità server e nomi server
+                HashMap<BigInteger,String> mapping = new HashMap<>();
+                int i = 1;
+                Iterator<String> it = servers.keySet().iterator();
+                while(it.hasNext()){
+                    mapping.put(BigInteger.valueOf(i), it.next());
+                }
+                //Generazione e scrittura shares
+                HashMap<BigInteger,BigInteger> temp = null;
+                byte[] buffer = new byte[this.bufferSize];
+                int r;
+                while((r = is.read(buffer, 0, buffer.length))!=-1){
+                    if(r < 32){
+                        byte[] newbuffer = Arrays.copyOfRange(buffer, 0, r);
+                        temp = s.split(newbuffer);
+                    }else
+                        temp = s.split(buffer);
+                     for(Map.Entry<BigInteger, BigInteger> e: temp.entrySet()){
+                         shares.get(e.getKey()).add(e.getValue());
+                     }
+                }
+            }finally{
+                is.close();
+            }
+        }
+    }
 }
