@@ -7,6 +7,7 @@ package sicurezzaprogetto4;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -170,7 +171,7 @@ public class SecureDistributedStorage implements Serializable{
                         temp = s.split(buffer);
                      for(int i = 1; i<=n; i++){
                         //Aggiunta padding e scrittura
-                        byte[] padded = BigIntegerToByteArray(temp.get(BigInteger.valueOf(i)));
+                        byte[] padded = BigIntegerToByteArray(temp.get(BigInteger.valueOf(i)),this.bufferSize);
                         outList.get(i-1).write(padded);
                      }
                 }
@@ -185,16 +186,54 @@ public class SecureDistributedStorage implements Serializable{
             }
         }
         
-        public void reconstructFile(ArrayList<BigInteger> servers){
-            
+        public void reconstructFile(ArrayList<BigInteger> servers, String fileToCombine, int lastShareLength) throws FileNotFoundException, IOException{
+            ArrayList<BufferedInputStream> inList = new ArrayList<>();
+            for(BigInteger b: servers){
+                inList.add(null);
+            }
+            BufferedOutputStream out = null;
+            try{
+                out = new BufferedOutputStream(new FileOutputStream(fileToCombine+".ricostruito"));
+                for(BigInteger b: servers){
+                    inList.add(new BufferedInputStream(new FileInputStream((b.intValue())+"/"+fileToCombine)));
+                }
+                long fileLength = new File(servers.get(0).intValue()+"/"+fileToCombine).length();
+                HashMap<BigInteger,BigInteger> temp = new HashMap<>();
+                byte[] buffer = new byte[this.bufferSize];
+                long r = 0;
+                while(r < fileLength-this.bufferSize){
+                    for(int i = 0; i< servers.size(); i++){
+                        inList.get(i).read(buffer, 0, buffer.length);
+                        temp.put(servers.get(i), new BigInteger(1,buffer));
+                    }
+                    r+=this.bufferSize;
+                    BigInteger result = s.combine(temp);
+                    out.write(BigIntegerToByteArray(result, this.bufferSize));
+                }
+                //Lettura ultimo byte di ciascun file
+                for(int i = 0; i< servers.size(); i++){
+                    inList.get(i).read(buffer, 0, buffer.length);
+                    temp.put(servers.get(i), new BigInteger(1,buffer));
+                }
+                BigInteger result = s.combine(temp);
+                out.write(BigIntegerToByteArray(result, lastShareLength));
+            }finally{
+                if(out!=null)
+                    out.close();
+                for(int i = 0; i < servers.size(); i++){
+                    BufferedInputStream bis = inList.get(i);
+                    if(bis!=null)
+                        bis.close();
+                }
+            }
         }
         
-        private byte[] BigIntegerToByteArray(BigInteger bi){
+        private byte[] BigIntegerToByteArray(BigInteger bi, int size){
             byte[] toEval = bi.toByteArray();
-            byte[] padded = new byte[this.bufferSize];
-            if(toEval.length > this.bufferSize)
+            byte[] padded = new byte[size];
+            if(toEval.length > size)
                toEval = Arrays.copyOfRange(toEval, 1, padded.length);
-            if(toEval.length < this.bufferSize){
+            if(toEval.length < size){
                for(int i = padded.length - toEval.length; i < padded.length ; i++)
                    padded[i] = toEval[i];
                toEval = padded;
