@@ -45,8 +45,6 @@ public class SecretSharing {
     public BigInteger combine(HashMap<BigInteger, BigInteger> shares){
         BigInteger secret = BigInteger.ZERO;
         BigInteger den;
-        if(shares.size() < this.k)
-            System.out.println("Attenzione ! Numero di shares non sufficienti per ricostruire l'informazione originale");
         for(Map.Entry<BigInteger, BigInteger> e1: shares.entrySet()){
             BigInteger id1 = e1.getKey();
             BigInteger num = e1.getValue();

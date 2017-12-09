@@ -19,17 +19,16 @@ public class test {
     /**
      * @param args the command line arguments
      */
-    public static void main(String[] args) throws FileNotFoundException, IOException {
+    public static void main(String[] args) throws FileNotFoundException, IOException, Exception {
         // TODO code application logic here
-        byte[] test = "abcdefgh".getBytes();        
-        BigInteger b = new BigInteger(1, test);
-        byte[] converted = b.toByteArray();
-        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("testobj"));
-        FileOutputStream fout = new FileOutputStream("testbyte");
-        oos.writeObject(b);
-        fout.write(test);
-        oos.close();
-        fout.close();
+        //String nomeFile = "Da Fare.txt";
+        String nomeFile = "timestamping.pdf";
+        SharesManager sm = new SharesManager(2,5);
+        int last = sm.generateShares(nomeFile);
+        ArrayList<BigInteger> servers = new ArrayList<>();
+        servers.add(BigInteger.valueOf(1));
+        servers.add(BigInteger.valueOf(3));
+        servers.add(BigInteger.valueOf(5));
+        sm.reconstructFile(servers, nomeFile, last);
     }
-    
 }
