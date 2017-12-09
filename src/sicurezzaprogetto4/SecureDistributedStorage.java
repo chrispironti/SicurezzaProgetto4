@@ -148,12 +148,7 @@ public class SecureDistributedStorage implements Serializable{
             try{
                 is= new BufferedInputStream(new FileInputStream(nomeFile));
                 //Mapping tra identità server e nomi server
-                HashMap<BigInteger,String> mapping = new HashMap<>();
-                int i = 1;
-                Iterator<String> it = servers.keySet().iterator();
-                while(it.hasNext()){
-                    mapping.put(BigInteger.valueOf(i), it.next());
-                }
+                HashMap<BigInteger,String> mapping = generateIdentities(servers.keySet().iterator()); 
                 //Generazione e scrittura shares
                 HashMap<BigInteger,BigInteger> temp = null;
                 byte[] buffer = new byte[this.bufferSize];
@@ -171,6 +166,15 @@ public class SecureDistributedStorage implements Serializable{
             }finally{
                 is.close();
             }
+        }
+        
+        private HashMap<BigInteger, String> generateIdentities(Iterator<String> serverNames){
+            int i = 1;
+            HashMap<BigInteger,String> mapping = new HashMap<>();
+            while(serverNames.hasNext()){
+                mapping.put(BigInteger.valueOf(i), serverNames.next());
+            }
+            return mapping;
         }
     }
 }
