@@ -29,8 +29,15 @@ public class SecretSharing {
         computeParameters();       
     }
     
+    public SecretSharing(int k, int n, BigInteger p, int modLength){
+        this.k = k;
+        this.n = n;
+        this.p = p;
+        this.modLength = modLength;
+        computeParameters(p);
+    }
+    
     public HashMap<BigInteger, BigInteger> split(byte[] secretInformation) throws Exception{
-        
         BigInteger secret = new BigInteger(1, secretInformation);
         if(secret.bitLength() > this.modLength)
             throw new Exception();
@@ -100,6 +107,15 @@ public class SecretSharing {
     
     private void computeParameters(){
         this.p = genPrime();
+        ArrayList<BigInteger> poly = new ArrayList<>();
+        poly.add(null);
+        for(int i = 0; i < this.k - 1; i++){
+            poly.add(randomZp());
+        }
+        this.poly = poly;
+    }    
+    
+    private void computeParameters(BigInteger p){
         ArrayList<BigInteger> poly = new ArrayList<>();
         poly.add(null);
         for(int i = 0; i < this.k - 1; i++){

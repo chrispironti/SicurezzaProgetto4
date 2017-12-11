@@ -5,9 +5,7 @@
  */
 package sicurezzaprogetto4;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.util.*;
 import java.math.BigInteger;
 /**
@@ -22,7 +20,7 @@ public class test {
     public static void main(String[] args) throws FileNotFoundException, IOException, Exception {
         // TODO code application logic here
         //String nomeFile = "Da Fare.txt";
-        String nomeFile = "timestamping.pdf";
+        String nomeFile = "documenti/timestamping.pdf";
         SharesManager sm = new SharesManager(2,5);
         int last = sm.generateShares(nomeFile);
         ArrayList<BigInteger> servers = new ArrayList<>();
