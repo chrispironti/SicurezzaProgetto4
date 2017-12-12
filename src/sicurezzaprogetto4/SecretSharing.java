@@ -38,10 +38,13 @@ public class SecretSharing {
         computeParameters();
     }
     
-    public HashMap<BigInteger, BigInteger> split(byte[] secretInformation) throws Exception{
+    public HashMap<BigInteger, BigInteger> split(byte[] secretInformation) throws TooBigSecretException, NotEnoughServersException{
+        if(n<=0){
+            throw new NotEnoughServersException();
+        }
         BigInteger secret = new BigInteger(1, secretInformation);
         if(secret.bitLength() > this.modLength)
-            throw new Exception();
+            throw new TooBigSecretException();
         this.poly.set(0, secret);
         HashMap<BigInteger, BigInteger> shares = new HashMap<>();
         for(int i = 1; i <= this.n ; i++){
@@ -113,6 +116,15 @@ public class SecretSharing {
             poly.add(randomZp());
         }
         this.poly = poly;
-    }    
+    }
+
+    public BigInteger getPrime() {
+        return p;
+    }
+
+    public void setN(int n) {
+        this.n = n;
+    }
+    
     
 }

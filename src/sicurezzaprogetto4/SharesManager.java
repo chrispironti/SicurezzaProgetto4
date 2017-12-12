@@ -40,13 +40,16 @@ public class SharesManager {
         this.s = new SecretSharing(k, n, this.modLength);
     }
     
-    public SharesManager(int k, int n, BigInteger p){
+    public SharesManager(int k, BigInteger p){
         this.k = k;
-        this.n = n;
-        this.s = new SecretSharing(k, n, p, this.modLength);
+        this.n = 0;
+        this.s = new SecretSharing(k, 0, p, this.modLength);
     }
 
     public JSONObject generateShares(String fileToSplit, SecretKey key) throws IOException, Exception{
+        if(n<=0){
+            throw new NotEnoughServersException();
+        }
         //Inizializzazione stream
         BufferedInputStream is = null;
         ArrayList<BufferedOutputStream> outList = new ArrayList<>();
@@ -55,7 +58,7 @@ public class SharesManager {
             generateOutputStreams(fileToSplit);
             is = new BufferedInputStream(new FileInputStream(fileToSplit));
             //Generazione e scrittura shares
-            j = this.splitFile(outList, is, key);
+            j = this.splitFile(outList, is, key, fileToSplit);
         }finally{
             if(is!=null)
                 is.close();
@@ -68,7 +71,7 @@ public class SharesManager {
         return j;
     }
 
-    public List<BigInteger> reconstructFile(ArrayList<BigInteger> servers, ArrayList<byte[]> mac, String originalFile, int lastShareLength, SecretKey key) throws FileNotFoundException, IOException, NoSuchAlgorithmException, InvalidKeyException{
+    public List<BigInteger> reconstructFile(List<BigInteger> servers, List<byte[]> mac, String originalFile, int lastShareLength, SecretKey key) throws FileNotFoundException, IOException, NoSuchAlgorithmException, InvalidKeyException{
         //Inizializzazione Stream
         List<MacInputStream> inList = new ArrayList<>();
         BufferedOutputStream out = null;
@@ -133,7 +136,7 @@ public class SharesManager {
         return outList;
     }
     
-    private List<MacInputStream> generateInputStreams(String originalFile, ArrayList<BigInteger> servers, SecretKey key) throws NoSuchAlgorithmException, FileNotFoundException, IOException, InvalidKeyException{
+    private List<MacInputStream> generateInputStreams(String originalFile, List<BigInteger> servers, SecretKey key) throws NoSuchAlgorithmException, FileNotFoundException, IOException, InvalidKeyException{
         Mac mac;
         ArrayList<MacInputStream> inList = new ArrayList<>();
         for(int i = 0; i < servers.size(); i++)
@@ -153,7 +156,7 @@ public class SharesManager {
         return inList;
     }
     
-    private JSONObject splitFile(ArrayList<BufferedOutputStream> outList, BufferedInputStream is, SecretKey key) throws IOException, Exception{
+    private JSONObject splitFile(ArrayList<BufferedOutputStream> outList, BufferedInputStream is, SecretKey key, String fileName) throws IOException, Exception{
         int last = this.bufferSize;
         JSONObject j = new JSONObject();
         ArrayList<Mac> macList = new ArrayList<>();
@@ -187,8 +190,11 @@ public class SharesManager {
         JSONArray a = new JSONArray();
         for(int i = 0; i < n; i++)
             a.put(i, Base64.getEncoder().encode(macList.get(i).doFinal()));
+        j.put(("FileName"), fileName);
+        j.put("RestoreNum", k);
         j.put("MacList", a);
         j.put("LastBufferDim", last);
+        j.put("Prime", Base64.getEncoder().encode(s.getPrime().toByteArray()));
         return j;
     }
 }

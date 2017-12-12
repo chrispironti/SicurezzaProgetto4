@@ -12,6 +12,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.math.BigInteger;
@@ -20,6 +21,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -35,23 +37,53 @@ import org.json.*;
  */
 public class SecureDistributedStorage{
 
-    private String nomeFile;
-    //Inormazione per recuperare il file nei server?
-    private int k;
-    private int n;
-
-    public SecureDistributedStorage(String nomeFile, int k, int n) {
-        
-        this.nomeFile = nomeFile;
-        this.k = k;
-        this.n = n;
+    
+    public static void distributeShares(String nomeFile, int k, int n, SecretKey key, String restoreInfoFile) throws Exception{
+        SharesManager sm= new SharesManager(k, n);
+        JSONObject j = sm.generateShares(nomeFile, key); 
+        PrintWriter pw= new PrintWriter(restoreInfoFile);
+        pw.println(j.toString());
+        pw.close();
     }
     
-    
-    public SecureDistributedStorage(String nomeFileRipristino){
-        
+    public static  List<BigInteger> restoreFromShares(String restoreInfoFile, List<BigInteger> restoreServers, SecretKey key) throws IOException, FileNotFoundException, NoSuchAlgorithmException, InvalidKeyException, NotEnoughServersException{
+        JSONObject restoreInfo= retrieveJSON(restoreInfoFile);
+        int k= restoreInfo.getInt("RestoreNum");
+        if(k<restoreServers.size()){
+            throw new NotEnoughServersException();
+        }
+        BigInteger p = new BigInteger(Base64.getDecoder().decode(restoreInfo.getString("Prime")));
+        SharesManager sm = new SharesManager(k, p);
+        JSONArray macArray= restoreInfo.getJSONArray("MacList");
+        List<byte[]> mac = new ArrayList<>();
+        for(BigInteger b:restoreServers){
+            mac.add(Base64.getDecoder().decode(macArray.getString(b.intValue())));
+        }
+        String fileName=restoreInfo.getString("FileName");
+        int last = restoreInfo.getInt("LastBufferDim");
+        return sm.reconstructFile(restoreServers, mac,fileName ,last , key);    
     }
     
+    private static JSONObject retrieveJSON(String restoreInfoFile) throws IOException{
+         ObjectInputStream ois=null;
+        String s=null;
+        try {
+            ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(restoreInfoFile))); 
+            s = (String) ois.readObject();
+            ois.close();
+      	}catch(ClassNotFoundException e){
+            e.printStackTrace();
+            System.exit(1);
+        }
+        finally{
+            if(ois!=null){
+                ois.close();
+            }
+        }
+        return new JSONObject(s);
+    }
+    
+    /*
     public void distributeShares() throws FileNotFoundException, IOException{
         SecretSharing s = new SecretSharing(k, n, modLength);
         int currentSecret=0;
@@ -103,7 +135,6 @@ public class SecureDistributedStorage{
             System.out.println("Invalid Key");
         }
         mac = macObj.doFinal();
-        
-        }
     }
+*/
 }
