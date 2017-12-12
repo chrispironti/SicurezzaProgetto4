@@ -37,4 +37,18 @@ public class SSUtils {
        System.arraycopy(array2, 0, array1and2, array1.length, array2.length);
        return array1and2;
    }
+    
+    public static boolean byteArrayEquals(byte[] array1, byte[] array2){
+        if(array1.length!=array2.length){
+            return false;
+        }
+        boolean result=true;
+        for(int i=0;i<array1.length && result;i++){
+            if(array1[i]!=array2[i]){
+                result=false;
+            }
+        }
+        return result;
+    }
+    
 }

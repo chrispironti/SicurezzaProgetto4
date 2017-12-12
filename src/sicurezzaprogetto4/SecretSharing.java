@@ -26,6 +26,7 @@ public class SecretSharing {
         this.k = k;
         this.n = n;
         this.modLength = modLength;
+        this.p = genPrime();
         computeParameters();       
     }
     
@@ -34,7 +35,7 @@ public class SecretSharing {
         this.n = n;
         this.p = p;
         this.modLength = modLength;
-        computeParameters(p);
+        computeParameters();
     }
     
     public HashMap<BigInteger, BigInteger> split(byte[] secretInformation) throws Exception{
@@ -106,7 +107,6 @@ public class SecretSharing {
     }
     
     private void computeParameters(){
-        this.p = genPrime();
         ArrayList<BigInteger> poly = new ArrayList<>();
         poly.add(null);
         for(int i = 0; i < this.k - 1; i++){
@@ -115,12 +115,4 @@ public class SecretSharing {
         this.poly = poly;
     }    
     
-    private void computeParameters(BigInteger p){
-        ArrayList<BigInteger> poly = new ArrayList<>();
-        poly.add(null);
-        for(int i = 0; i < this.k - 1; i++){
-            poly.add(randomZp());
-        }
-        this.poly = poly;
-    }    
 }

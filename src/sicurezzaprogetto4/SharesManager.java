@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.security.*;
 import java.util.Base64;
+import java.util.List;
 import java.util.Random;
 import javax.crypto.*;
 import org.json.*;
@@ -29,7 +30,6 @@ import org.json.*;
 public class SharesManager {
     private final int bufferSize = 32;
     private final int modLength = bufferSize*8;
-    private final int nameSize = 20;
     public int k;
     public int n;
     private SecretSharing s;
@@ -68,15 +68,18 @@ public class SharesManager {
         return j;
     }
 
-    public void reconstructFile(ArrayList<BigInteger> servers, ArrayList<byte[]> mac, String originalFile, int lastShareLength) throws FileNotFoundException, IOException, NoSuchAlgorithmException{
+    public List<BigInteger> reconstructFile(ArrayList<BigInteger> servers, ArrayList<byte[]> mac, String originalFile, int lastShareLength, SecretKey key) throws FileNotFoundException, IOException, NoSuchAlgorithmException, InvalidKeyException{
         //Inizializzazione Stream
-        ArrayList<BufferedInputStream> inList = new ArrayList<>();
+        List<MacInputStream> inList = new ArrayList<>();
         BufferedOutputStream out = null;
         try{
             out = new BufferedOutputStream(new FileOutputStream("ricostruiti/"+originalFile));
-            String fileName = "";
-            inList = this.generateInputStreams(originalFile, servers, fileName);
-            long fileLength = new File(fileName).length();
+            inList = this.generateInputStreams(originalFile, servers, key);   
+            long originalLength=new File(originalFile).length();
+            long fileLength=(originalLength/this.bufferSize)*(this.bufferSize+1);
+            if(fileLength % this.bufferSize!= 0){
+                fileLength+=this.bufferSize+1;
+            }   
             HashMap<BigInteger,BigInteger> temp = new HashMap<>();
             byte[] buffer = new byte[this.bufferSize+1];
             long r = 0;
@@ -100,14 +103,21 @@ public class SharesManager {
             if(out!=null)
                 out.close();
             for(int i = 0; i < servers.size(); i++){
-                BufferedInputStream bis = inList.get(i);
+                MacInputStream bis = inList.get(i);
                 if(bis!=null)
                     bis.close();
             }
         }
+        List<BigInteger> fakes=new ArrayList<>();
+        for(int i=0; i<mac.size();i++){
+            if(!SSUtils.byteArrayEquals(inList.get(i).getMac().doFinal(), mac.get(i))){
+                fakes.add(BigInteger.valueOf(i));
+            }       
+        }
+        return fakes;
     }
 
-    private ArrayList<BufferedOutputStream> generateOutputStreams(String fileToSplit) throws NoSuchAlgorithmException, FileNotFoundException, IOException{
+    private List<BufferedOutputStream> generateOutputStreams(String fileToSplit) throws NoSuchAlgorithmException, FileNotFoundException, IOException{
         ArrayList<BufferedOutputStream> outList = new ArrayList<>();
         for(int i = 0; i < n; i++)
             outList.add(null);
@@ -123,19 +133,23 @@ public class SharesManager {
         return outList;
     }
     
-        private ArrayList<BufferedInputStream> generateInputStreams(String originalFile, ArrayList<BigInteger> servers, String name) throws NoSuchAlgorithmException, FileNotFoundException, IOException{
-        ArrayList<BufferedInputStream> inList = new ArrayList<>();
+    private List<MacInputStream> generateInputStreams(String originalFile, ArrayList<BigInteger> servers, SecretKey key) throws NoSuchAlgorithmException, FileNotFoundException, IOException, InvalidKeyException{
+        Mac mac;
+        ArrayList<MacInputStream> inList = new ArrayList<>();
         for(int i = 0; i < servers.size(); i++)
             inList.add(null);
         String fileName = "";
         byte[] concat;
         MessageDigest md = MessageDigest.getInstance("SHA256");
         for(int i = 0; i < servers.size(); i++){
+            mac = Mac.getInstance("HmacSHA256");
+            mac.init(key);
             concat = SSUtils.arrayConcat(originalFile.getBytes(), new String(""+servers.get(i).intValue()).getBytes());
             fileName = new String(md.digest(SSUtils.arrayConcat(concat, originalFile.getBytes())));
-            inList.set(i,new BufferedInputStream(new FileInputStream("servers/"+servers.get(i).intValue()+"/"+fileName)));
+            BufferedInputStream is = new BufferedInputStream(new FileInputStream("servers/"+servers.get(i).intValue()+"/"+fileName));
+            MacInputStream mis= new MacInputStream(is, mac);
+            inList.set(i,mis);
         }
-        name = fileName;
         return inList;
     }
     
