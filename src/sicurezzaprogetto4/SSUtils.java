@@ -1,7 +1,10 @@
 package sicurezzaprogetto4;
 
 import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Base64;
 
 /*
  * To change this license header, choose License Headers in Project Properties.
@@ -18,9 +21,9 @@ public class SSUtils {
     public static byte[] BigIntegerToByteArray(BigInteger bi, int size){
         byte[] toEval = bi.toByteArray();
         byte[] padded = new byte[size];
-        if(toEval.length > size)
+        if(toEval.length > size) //Aggiunta padding in toEval fino a eguagliare size
            toEval = Arrays.copyOfRange(toEval, 1, padded.length+1);
-        if(toEval.length < size){
+        if(toEval.length < size){ //Rimozione padding da toEval fino a eguagliare size
            int i = padded.length-toEval.length;
            for(int j = 0; j < toEval.length; j++){
                padded[i] = toEval[j];
@@ -49,6 +52,16 @@ public class SSUtils {
             }
         }
         return result;
+    }
+    
+    public static String generateFileName(String fileName, int serverID) throws NoSuchAlgorithmException{
+        //Nome file da salvare sui server come H(nomefileoriginario|IDServer|nomefileoriginario).
+        //Tutti questi campi non sono e non devono essere noti ai server.
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        byte[] concat = SSUtils.arrayConcat(fileName.getBytes(), (""+serverID).getBytes());
+        fileName = Base64.getEncoder().withoutPadding().encodeToString(md.digest(SSUtils.arrayConcat(concat, fileName.getBytes())));
+        fileName = fileName.replaceAll("/", "");
+        return fileName;
     }
     
 }

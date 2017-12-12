@@ -125,6 +125,4 @@ public class SecretSharing {
     public void setN(int n) {
         this.n = n;
     }
-    
-    
 }

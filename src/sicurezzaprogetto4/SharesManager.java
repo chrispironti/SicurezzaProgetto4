@@ -7,7 +7,6 @@ package sicurezzaprogetto4;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -18,8 +17,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.security.*;
 import java.util.Base64;
-import java.util.List;
-import java.util.Random;
 import javax.crypto.*;
 import org.json.*;
 
@@ -40,6 +37,7 @@ public class SharesManager {
         this.s = new SecretSharing(k, n, this.modLength);
     }
     
+    //Da non usare per operazioni di split
     public SharesManager(int k, BigInteger p){
         this.k = k;
         this.n = 0;
@@ -52,111 +50,32 @@ public class SharesManager {
         }
         //Inizializzazione stream
         BufferedInputStream is = null;
-        ArrayList<BufferedOutputStream> outList = new ArrayList<>();
+        ArrayList<BufferedOutputStream> outList = null;
         JSONObject j = new JSONObject();
         try{
-            generateOutputStreams(fileToSplit);
+            String[] originalFileName = fileToSplit.split("/");
+            outList = generateOutputStreams(originalFileName[originalFileName.length -1]);
             is = new BufferedInputStream(new FileInputStream(fileToSplit));
             //Generazione e scrittura shares
-            j = this.splitFile(outList, is, key, fileToSplit);
+            j = this.splitFile(outList, is, key);
+            j.put("Prime", Base64.getEncoder().encodeToString(s.getPrime().toByteArray()));
+            j.put("FileName", originalFileName[originalFileName.length -1]);
+            j.put("RestoreNum", this.k);
         }finally{
             if(is!=null)
                 is.close();
-            for(int i = 0; i < n; i++){
-                BufferedOutputStream out = outList.get(i);
-                if(out!=null)
-                    out.close();
+            if(outList != null){
+                for(int i = 0; i < n; i++){
+                    BufferedOutputStream out = outList.get(i);
+                    if(out!=null)
+                        out.close();
+                }
             }
         }
         return j;
     }
-
-    public List<BigInteger> reconstructFile(List<BigInteger> servers, List<byte[]> mac, String originalFile, int lastShareLength, SecretKey key) throws FileNotFoundException, IOException, NoSuchAlgorithmException, InvalidKeyException{
-        //Inizializzazione Stream
-        List<MacInputStream> inList = new ArrayList<>();
-        BufferedOutputStream out = null;
-        try{
-            out = new BufferedOutputStream(new FileOutputStream("ricostruiti/"+originalFile));
-            inList = this.generateInputStreams(originalFile, servers, key);   
-            long originalLength=new File(originalFile).length();
-            long fileLength=(originalLength/this.bufferSize)*(this.bufferSize+1);
-            if(fileLength % this.bufferSize!= 0){
-                fileLength+=this.bufferSize+1;
-            }   
-            HashMap<BigInteger,BigInteger> temp = new HashMap<>();
-            byte[] buffer = new byte[this.bufferSize+1];
-            long r = 0;
-            while(this.bufferSize +1 != fileLength-r){
-                for(int i = 0; i< servers.size(); i++){
-                    inList.get(i).read(buffer, 0, buffer.length);
-                    temp.put(servers.get(i), new BigInteger(1, buffer));
-                }
-                r+=(this.bufferSize + 1);
-                BigInteger result = s.combine(temp);
-                out.write(SSUtils.BigIntegerToByteArray(result, this.bufferSize));
-            }
-            //Lettura ultimo pezzo di ciascun file
-            for(int i = 0; i< servers.size(); i++){
-                inList.get(i).read(buffer, 0, buffer.length);
-                temp.put(servers.get(i), new BigInteger(1, buffer));
-            }
-            BigInteger result = s.combine(temp);
-            out.write(SSUtils.BigIntegerToByteArray(result, lastShareLength));
-        }finally{
-            if(out!=null)
-                out.close();
-            for(int i = 0; i < servers.size(); i++){
-                MacInputStream bis = inList.get(i);
-                if(bis!=null)
-                    bis.close();
-            }
-        }
-        List<BigInteger> fakes=new ArrayList<>();
-        for(int i=0; i<mac.size();i++){
-            if(!SSUtils.byteArrayEquals(inList.get(i).getMac().doFinal(), mac.get(i))){
-                fakes.add(BigInteger.valueOf(i));
-            }       
-        }
-        return fakes;
-    }
-
-    private List<BufferedOutputStream> generateOutputStreams(String fileToSplit) throws NoSuchAlgorithmException, FileNotFoundException, IOException{
-        ArrayList<BufferedOutputStream> outList = new ArrayList<>();
-        for(int i = 0; i < n; i++)
-            outList.add(null);
-        String fileName;
-        byte[] concat;
-        MessageDigest md = MessageDigest.getInstance("SHA256");
-        //File da salvare sui server come H(fileoriginario|IDServer|fileoriginario)
-        for(int i = 0; i < n; i++){
-            concat = SSUtils.arrayConcat(fileToSplit.getBytes(), new String(""+(i+1)).getBytes());
-            fileName = new String(md.digest(SSUtils.arrayConcat(concat, fileToSplit.getBytes())));
-            outList.set(i,new BufferedOutputStream(new FileOutputStream("servers/"+(i+1)+"/"+fileName)));
-        }
-        return outList;
-    }
     
-    private List<MacInputStream> generateInputStreams(String originalFile, List<BigInteger> servers, SecretKey key) throws NoSuchAlgorithmException, FileNotFoundException, IOException, InvalidKeyException{
-        Mac mac;
-        ArrayList<MacInputStream> inList = new ArrayList<>();
-        for(int i = 0; i < servers.size(); i++)
-            inList.add(null);
-        String fileName = "";
-        byte[] concat;
-        MessageDigest md = MessageDigest.getInstance("SHA256");
-        for(int i = 0; i < servers.size(); i++){
-            mac = Mac.getInstance("HmacSHA256");
-            mac.init(key);
-            concat = SSUtils.arrayConcat(originalFile.getBytes(), new String(""+servers.get(i).intValue()).getBytes());
-            fileName = new String(md.digest(SSUtils.arrayConcat(concat, originalFile.getBytes())));
-            BufferedInputStream is = new BufferedInputStream(new FileInputStream("servers/"+servers.get(i).intValue()+"/"+fileName));
-            MacInputStream mis= new MacInputStream(is, mac);
-            inList.set(i,mis);
-        }
-        return inList;
-    }
-    
-    private JSONObject splitFile(ArrayList<BufferedOutputStream> outList, BufferedInputStream is, SecretKey key, String fileName) throws IOException, Exception{
+    private JSONObject splitFile(ArrayList<BufferedOutputStream> outList, BufferedInputStream is, SecretKey key) throws IOException, Exception{
         int last = this.bufferSize;
         JSONObject j = new JSONObject();
         ArrayList<Mac> macList = new ArrayList<>();
@@ -189,12 +108,84 @@ public class SharesManager {
         //Scrittura Mac nel JSONArray e restituzione JSONObject
         JSONArray a = new JSONArray();
         for(int i = 0; i < n; i++)
-            a.put(i, Base64.getEncoder().encode(macList.get(i).doFinal()));
-        j.put(("FileName"), fileName);
-        j.put("RestoreNum", k);
+            a.put(i, Base64.getEncoder().encodeToString(macList.get(i).doFinal()));
         j.put("MacList", a);
         j.put("LastBufferDim", last);
-        j.put("Prime", Base64.getEncoder().encode(s.getPrime().toByteArray()));
         return j;
+    }
+        
+    public ArrayList<BigInteger> reconstructFile(ArrayList<BigInteger> servers, ArrayList<byte[]> mac, String originalFileName, int lastShareLength, SecretKey key) throws FileNotFoundException, IOException, NoSuchAlgorithmException, InvalidKeyException{
+        //Inizializzazione Stream
+        ArrayList<MacInputStream> inList = null;
+        BufferedOutputStream out = null;
+        try{
+            out = new BufferedOutputStream(new FileOutputStream("ricostruiti/"+originalFileName));
+            inList = this.generateInputStreams(originalFileName, servers, key);
+            //Combine shares
+            this.combineShares(inList, out, servers, lastShareLength);
+        }finally{
+            if(out!=null)
+                out.close();
+            if(inList != null){
+                for(int i = 0; i < servers.size(); i++){
+                    MacInputStream mis = inList.get(i);
+                    if(mis!=null)
+                        mis.close();
+                }
+            }
+        }
+        //Verifica eventuali shares corrotte
+        ArrayList<BigInteger> fakes=new ArrayList<>();
+        for(int i=0; i<mac.size();i++){
+            if(!SSUtils.byteArrayEquals(inList.get(i).getMac().doFinal(), mac.get(i))){
+                fakes.add(BigInteger.valueOf(i));
+            }       
+        }
+        return fakes;
+    }
+    
+    private void combineShares(ArrayList<MacInputStream> inList, BufferedOutputStream out, ArrayList<BigInteger> servers, int lastShareLength) throws IOException{
+        
+        HashMap<BigInteger,BigInteger> temp = new HashMap<>();
+        byte[] buffer = new byte[this.bufferSize+1];
+        //Lettura e combine delle share
+        while(this.bufferSize +1 != inList.get(0).available()){
+            for(int i = 0; i< servers.size(); i++){
+                inList.get(i).read(buffer, 0, buffer.length);
+                temp.put(servers.get(i), new BigInteger(1, buffer));
+            }
+            BigInteger result = s.combine(temp);
+            out.write(SSUtils.BigIntegerToByteArray(result, this.bufferSize));
+        }
+        //Lettura e combine ultimi bufferSize+1 bytes di ciascun file
+        for(int i = 0; i< servers.size(); i++){
+            inList.get(i).read(buffer, 0, buffer.length);
+            temp.put(servers.get(i), new BigInteger(1, buffer));
+        }
+        BigInteger result = s.combine(temp);
+        //Recupero file originario
+        out.write(SSUtils.BigIntegerToByteArray(result, lastShareLength));
+    }
+   
+    private ArrayList<BufferedOutputStream> generateOutputStreams(String fileToSplit) throws NoSuchAlgorithmException, FileNotFoundException, IOException{
+        ArrayList<BufferedOutputStream> outList = new ArrayList<>();
+        for(int i = 0; i < n; i++){
+            outList.add(new BufferedOutputStream(new FileOutputStream("servers/"+(i+1)+"/"+SSUtils.generateFileName(fileToSplit, i+1))));
+        }
+        return outList;
+    }
+    
+    private ArrayList<MacInputStream> generateInputStreams(String originalFile, ArrayList<BigInteger> servers, SecretKey key) throws NoSuchAlgorithmException, FileNotFoundException, IOException, InvalidKeyException{
+        Mac mac;
+        ArrayList<MacInputStream> inList = new ArrayList<>();
+        //Generazione MacInputStream
+        for(int i = 0; i < servers.size(); i++){
+            mac = Mac.getInstance("HmacSHA256");
+            mac.init(key);
+            BufferedInputStream is = new BufferedInputStream(new FileInputStream("servers/"+servers.get(i).intValue()+"/"+SSUtils.generateFileName(originalFile, servers.get(i).intValue())));
+            MacInputStream mis= new MacInputStream(is, mac);
+            inList.add(mis);
+        }
+        return inList;
     }
 }
