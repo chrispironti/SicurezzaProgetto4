@@ -49,7 +49,7 @@ public class SecureDistributedStorage{
     public static  List<BigInteger> restoreFromShares(String restoreInfoFile, List<BigInteger> restoreServers, SecretKey key) throws IOException, FileNotFoundException, NoSuchAlgorithmException, InvalidKeyException, NotEnoughServersException{
         JSONObject restoreInfo= retrieveJSON(restoreInfoFile);
         int k= restoreInfo.getInt("RestoreNum");
-        if(k<restoreServers.size()){
+        if(restoreServers.size()<k){
             throw new NotEnoughServersException();
         }
         BigInteger p = new BigInteger(Base64.getDecoder().decode(restoreInfo.getString("Prime")));

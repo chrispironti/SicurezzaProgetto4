@@ -8,6 +8,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
 import java.math.BigInteger;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 /**
  *
  * @author Daniele
@@ -20,13 +22,15 @@ public class test {
     public static void main(String[] args) throws FileNotFoundException, IOException, Exception {
         // TODO code application logic here
         //String nomeFile = "Da Fare.txt";
+        KeyGenerator kg = KeyGenerator.getInstance("HmacSHA256");
+        SecretKey key = kg.generateKey();
         String nomeFile = "documenti/timestamping.pdf";
-        SharesManager sm = new SharesManager(2,5);
-        int last = sm.generateShares(nomeFile);
+        SecureDistributedStorage.distributeShares(nomeFile, 2, 5, key, "restoreInfo");
         ArrayList<BigInteger> servers = new ArrayList<>();
         servers.add(BigInteger.valueOf(1));
         servers.add(BigInteger.valueOf(3));
         servers.add(BigInteger.valueOf(5));
-        sm.reconstructFile(servers, nomeFile, last);
+        List<BigInteger> fakes= SecureDistributedStorage.restoreFromShares("restoreInfo", servers, key);
+        System.out.println("Numero di messaggi alterati: " + fakes.size());
     }
 }
