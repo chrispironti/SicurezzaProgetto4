@@ -26,22 +26,36 @@ import javax.crypto.SecretKey;
 public class test {
 
     /**
-     * @param args the command line arguments
+    * @param args the command line arguments
      */
     public static void main(String[] args) throws FileNotFoundException, IOException, Exception {
         // TODO code application logic here
         //String nomeFile = "Da Fare.txt";
-        KeyGenerator kg = KeyGenerator.getInstance("HmacSHA256");
-        SecretKey key = kg.generateKey();
+//        KeyGenerator kg = KeyGenerator.getInstance("HmacSHA256");
+//        SecretKey key = kg.generateKey();
+
+        //Generazione keyring di client random
+        int usersNumber = 3;
+        System.out.println("Generazione "+ usersNumber +" client random...");
+        Map<String, char[]> users = new HashMap<>();
+        Map<String,String> filesChiaviPrivate = new HashMap<>();
+        for(int i = 1; i <= usersNumber; i++){
+            users.put("Client"+i, ("client"+i).toCharArray());
+            filesChiaviPrivate.put("Client"+i, "keyring/Client"+ i +".kc");
+        }
+        KeychainUtils.generateKeyPairs(users, filesChiaviPrivate);
+
         String nomeFile = "documenti/timestamping.pdf";
-        SecureDistributedStorage.distributeShares(nomeFile, 3, 5, key, "clients/restoreInfo");
+        String keychainFile ="keyring/Client1.kc";
+        String password = "client1";
+        SecureDistributedStorage.distributeShares(nomeFile, 3, 5, keychainFile, password.toCharArray(), "clients/restoreInfo");
         //new File(nomeFile).delete();
         ArrayList<BigInteger> servers = new ArrayList<>();
         servers.add(BigInteger.valueOf(1));
         servers.add(BigInteger.valueOf(3));
         servers.add(BigInteger.valueOf(5));
         //servers.add(BigInteger.valueOf(4));
-        List<BigInteger> fakes= SecureDistributedStorage.restoreFromShares("restoreInfo", servers, key);
+        List<BigInteger> fakes= SecureDistributedStorage.restoreFromShares("restoreInfo", servers, keychainFile, password.toCharArray());
         System.out.println("Numero di messaggi alterati: " + fakes.size());
     }
 }

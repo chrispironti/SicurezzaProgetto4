@@ -26,7 +26,9 @@ import org.json.*;
 public class SecureDistributedStorage{
 
     
-    public static void distributeShares(String nomeFile, int k, int n, SecretKey key, String restoreInfoFile) throws Exception{
+    public static void distributeShares(String nomeFile, int k, int n, String keychainFile, char[] password, String restoreInfoFile) throws Exception{
+        Keychain userKeyChain = new Keychain(keychainFile, password);
+        SecretKey key = userKeyChain.getSecretKey("Key/HmacSHA256/Main");
         SharesManager sm = new SharesManager(k, n);
         JSONObject j = sm.generateShares(nomeFile, key); 
         PrintWriter pw= new PrintWriter(restoreInfoFile);
@@ -34,7 +36,9 @@ public class SecureDistributedStorage{
         pw.close();
     }
     
-    public static  ArrayList<BigInteger> restoreFromShares(String restoreInfoFile, ArrayList<BigInteger> restoreServers, SecretKey key) throws IOException, FileNotFoundException, NoSuchAlgorithmException, InvalidKeyException, NotEnoughServersException{
+    public static  ArrayList<BigInteger> restoreFromShares(String restoreInfoFile, ArrayList<BigInteger> restoreServers, String keychainFile, char[] password) throws IOException, FileNotFoundException, NoSuchAlgorithmException, InvalidKeyException, NotEnoughServersException{
+        Keychain userKeyChain = new Keychain(keychainFile, password);
+        SecretKey key = userKeyChain.getSecretKey("Key/HmacSHA256/Main");
         JSONObject restoreInfo= retrieveJSON(restoreInfoFile);
         int k= restoreInfo.getInt("RestoreNum");
         if(restoreServers.size()<k){

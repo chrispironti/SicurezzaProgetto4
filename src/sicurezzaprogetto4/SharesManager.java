@@ -25,7 +25,7 @@ import org.json.*;
  * @author Daniele
  */
 public class SharesManager {
-    private final int bufferSize = 32;
+    private int bufferSize;
     private final int modLength = bufferSize*8;
     public int k;
     public int n;
@@ -48,6 +48,7 @@ public class SharesManager {
         if(n<=0){
             throw new NotEnoughServersException();
         }
+        evaluateBufferSize(fileToSplit);
         //Inizializzazione stream
         BufferedInputStream is = null;
         ArrayList<BufferedOutputStream> outList = null;
@@ -187,5 +188,24 @@ public class SharesManager {
             inList.add(mis);
         }
         return inList;
+    }
+    
+    private void evaluateBufferSize(String fileToSplit){
+        long fileLength=fileToSplit.length();
+        if (fileLength<=32){
+            this.bufferSize=(int)fileLength;
+        }
+        else if (fileLength>32 && fileLength<=1024){
+            this.bufferSize=32;
+        }
+        else if (fileLength>1024 && fileLength<=2048){
+            this.bufferSize=64;
+        }
+        else if (fileLength>2048 && fileLength<=4096){
+            this.bufferSize=128;
+        }
+        else{
+            this.bufferSize=256;
+        }
     }
 }
