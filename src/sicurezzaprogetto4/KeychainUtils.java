@@ -18,8 +18,10 @@ public class KeychainUtils {
     public static final int IV_SIZE=16;
     public static final int SALT_SIZE=16;
     
-    public static void generateKeyPairs(Map<String,char[]> passwords, Map<String,String> filesChiaviPrivate) throws IOException{
+    public static void generateKeyPairs(Map<String,char[]> passwords, String fileChiaviPubbliche, Map<String,String> filesChiaviPrivate) throws IOException{
         
+        JSONObject jPubDatabase = new JSONObject();
+        JSONObject jpub = new JSONObject();
         JSONObject jpriv = new JSONObject();
         SecureRandom random = new SecureRandom();
         byte salt[] = new byte[SALT_SIZE];
@@ -29,19 +31,49 @@ public class KeychainUtils {
         
         for(Map.Entry<String,String> e: filesChiaviPrivate.entrySet()){
             try{
-                KeyGenerator kg = KeyGenerator.getInstance("HmacSHA256");
-                SecretKey MacKey = kg.generateKey();
-                jpriv.put("Key/HmacSHA256/Main", Base64.getEncoder().encodeToString(MacKey.getEncoded()));
+                KeyPairGenerator keyPairGenerator = null;
+                keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+                keyPairGenerator.initialize(1024, new SecureRandom());
+                KeyPair RSAKeys1024 = keyPairGenerator.generateKeyPair();
+                jpub.put("Key/RSA/1024/Main", Base64.getEncoder().encodeToString(RSAKeys1024.getPublic().getEncoded()));
+                jpriv.put("Key/RSA/1024/Main", Base64.getEncoder().encodeToString(RSAKeys1024.getPrivate().getEncoded()));
+                //Generazione chiavi RSA 2048
+                keyPairGenerator.initialize(2048, new SecureRandom());
+                KeyPair RSAKeys2048 = keyPairGenerator.generateKeyPair();
+                jpub.put("Key/RSA/2048/Main", Base64.getEncoder().encodeToString(RSAKeys2048.getPublic().getEncoded()));
+                jpriv.put("Key/RSA/2048/Main", Base64.getEncoder().encodeToString(RSAKeys2048.getPrivate().getEncoded()));
+                //Generazione chiavi DSA 1024
+                keyPairGenerator = KeyPairGenerator.getInstance("DSA");
+                keyPairGenerator.initialize(1024, new SecureRandom());
+                KeyPair DSAKeys1024 = keyPairGenerator.generateKeyPair();
+                jpub.put("Key/DSA/1024/Main", Base64.getEncoder().encodeToString(DSAKeys1024.getPublic().getEncoded()));
+                jpriv.put("Key/DSA/1024/Main", Base64.getEncoder().encodeToString(DSAKeys1024.getPrivate().getEncoded()));
+                //Generazione chiavi DSA 2048
+                keyPairGenerator.initialize(2048, new SecureRandom());
+                KeyPair DSAKeys2048 = keyPairGenerator.generateKeyPair();
+                jpub.put("Key/DSA/2048/Main", Base64.getEncoder().encodeToString(DSAKeys2048.getPublic().getEncoded()));
+                jpriv.put("Key/DSA/2048/Main", Base64.getEncoder().encodeToString(DSAKeys2048.getPrivate().getEncoded()));
                 char[] password = passwords.get(e.getKey());
                 if(password != null){
                     writeKeychain(jpriv, salt, iv, passwords.get(e.getKey()), e.getValue());
+                    jPubDatabase.put(e.getKey(), jpub.toString());
                 }else
                     System.out.println("Errore. L'utente non è presente in entrambe le mappe. La richiesta verrà ignorata.\n");
             }catch(NoSuchAlgorithmException ex){
                 ex.printStackTrace();
                 System.exit(1);
             }    
-        } 
+        }
+        ObjectOutputStream oos=null;
+        try{
+        oos = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(fileChiaviPubbliche)));
+        oos.writeObject(jPubDatabase.toString());
+        oos.close(); 
+        }finally{
+        if(oos!=null){
+            oos.close();
+            }  
+        }    
     }
     
     public static void generateEmptyKeychain(char[] password, String fileChiaviPrivate) throws IOException{
@@ -183,11 +215,11 @@ public class KeychainUtils {
     
         /* L'identificativo è posto per convenzione Key/TYPE/dim/Service*/
 
-    public static void addKeysInKeychain(String fileChiaviPrivate, Map<String,PrivateKey> keyToAdd, char[] password) throws IOException{
+    public static void addKeysInKeychain(String fileChiaviPrivate, Map<String,Key> keyToAdd, char[] password) throws IOException{
         byte[] salt= new byte[SALT_SIZE];
         byte[] iv= new byte[IV_SIZE];
         JSONObject keychain = decryptKeychain(password, fileChiaviPrivate,salt,iv);
-        for(Map.Entry<String,PrivateKey> entry :keyToAdd.entrySet()){
+        for(Map.Entry<String,Key> entry :keyToAdd.entrySet()){
             keychain.put(entry.getKey(), Base64.getEncoder().encodeToString(entry.getValue().getEncoded()));
         }
         writeKeychain(keychain, salt, iv, password, fileChiaviPrivate);
@@ -202,10 +234,4 @@ public class KeychainUtils {
         }
         writeKeychain(keychain, salt, iv, password, fileChiaviPrivate);     
     }
-    
-    
-
 }
-
-
-

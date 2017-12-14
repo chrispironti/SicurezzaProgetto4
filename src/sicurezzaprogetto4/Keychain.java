@@ -8,11 +8,13 @@ package sicurezzaprogetto4;
 import java.io.IOException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
-import javax.crypto.SecretKey;
+import java.security.PrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
 import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -25,9 +27,8 @@ public class Keychain {
     public Keychain(String keychainFile, char[] password) throws IOException {    
         jKeyChain=KeychainUtils.decryptKeychain(password, keychainFile);
     }    
-  
- 
-    public SecretKey getSecretKey(String identifier){
+    
+        public SecretKey getSecretKey(String identifier){
         
         String[] parameters= identifier.split("/");
         SecretKey k= null;
@@ -38,9 +39,24 @@ public class Keychain {
             return null;
         }
         byte[] decodedPrivKey=Base64.getDecoder().decode(keytomodify);
+        k = new SecretKeySpec(decodedPrivKey, 0, decodedPrivKey.length, parameters[1]);
+        return k;
+    }
+ 
+    public PrivateKey getPrivateKey(String identifier){
+        
+        String[] parameters= identifier.split("/");
+        PrivateKey k= null;
+        String keytomodify;
         try{
-            k=KeyGenerator.getInstance(parameters[1]).generateKey();
-        }catch(NoSuchAlgorithmException ex){
+            keytomodify=jKeyChain.getString(identifier);
+        }catch(JSONException ex){
+            return null;
+        }
+        byte[] decodedPrivKey=Base64.getDecoder().decode(keytomodify);
+        try{
+            k=KeyFactory.getInstance(parameters[1]).generatePrivate(new PKCS8EncodedKeySpec(decodedPrivKey));
+        }catch(InvalidKeySpecException| NoSuchAlgorithmException ex){
             ex.printStackTrace();
         }
         return k;

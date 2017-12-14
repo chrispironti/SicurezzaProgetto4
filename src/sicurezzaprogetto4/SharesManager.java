@@ -25,8 +25,9 @@ import org.json.*;
  * @author Daniele
  */
 public class SharesManager {
-    private int bufferSize;
+    private int bufferSize = 32;
     private final int modLength = bufferSize*8;
+    private final int randomSize = 8;
     public int k;
     public int n;
     private SecretSharing s;
@@ -48,20 +49,23 @@ public class SharesManager {
         if(n<=0){
             throw new NotEnoughServersException();
         }
-        evaluateBufferSize(fileToSplit);
+        //evaluateBufferSize(fileToSplit);
         //Inizializzazione stream
         BufferedInputStream is = null;
         ArrayList<BufferedOutputStream> outList = null;
         JSONObject j = new JSONObject();
         try{
             String[] originalFileName = fileToSplit.split("/");
-            outList = generateOutputStreams(originalFileName[originalFileName.length -1]);
+            byte[] random = new byte[this.randomSize];
+            new SecureRandom().nextBytes(random);
+            outList = generateOutputStreams(originalFileName[originalFileName.length -1], random);
             is = new BufferedInputStream(new FileInputStream(fileToSplit));
             //Generazione e scrittura shares
             j = this.splitFile(outList, is, key);
             j.put("Prime", Base64.getEncoder().encodeToString(s.getPrime().toByteArray()));
             j.put("FileName", originalFileName[originalFileName.length -1]);
             j.put("RestoreNum", this.k);
+            j.put("Random", Base64.getEncoder().encodeToString(random));
         }finally{
             if(is!=null)
                 is.close();
@@ -115,13 +119,13 @@ public class SharesManager {
         return j;
     }
         
-    public ArrayList<BigInteger> reconstructFile(ArrayList<BigInteger> servers, ArrayList<byte[]> mac, String originalFileName, int lastShareLength, SecretKey key) throws FileNotFoundException, IOException, NoSuchAlgorithmException, InvalidKeyException{
+    public ArrayList<BigInteger> reconstructFile(ArrayList<BigInteger> servers, ArrayList<byte[]> mac, String originalFileName, int lastShareLength, SecretKey key, byte[] random) throws FileNotFoundException, IOException, NoSuchAlgorithmException, InvalidKeyException{
         //Inizializzazione Stream
         ArrayList<MacInputStream> inList = null;
         BufferedOutputStream out = null;
         try{
             out = new BufferedOutputStream(new FileOutputStream("ricostruiti/"+originalFileName));
-            inList = this.generateInputStreams(originalFileName, servers, key);
+            inList = this.generateInputStreams(originalFileName, servers, key, random);
             //Combine shares
             this.combineShares(inList, out, servers, lastShareLength);
         }finally{
@@ -168,22 +172,22 @@ public class SharesManager {
         out.write(SSUtils.BigIntegerToByteArray(result, lastShareLength));
     }
    
-    private ArrayList<BufferedOutputStream> generateOutputStreams(String fileToSplit) throws NoSuchAlgorithmException, FileNotFoundException, IOException{
+    private ArrayList<BufferedOutputStream> generateOutputStreams(String fileToSplit, byte[] random) throws NoSuchAlgorithmException, FileNotFoundException, IOException{
         ArrayList<BufferedOutputStream> outList = new ArrayList<>();
         for(int i = 0; i < n; i++){
-            outList.add(new BufferedOutputStream(new FileOutputStream("servers/"+(i+1)+"/"+SSUtils.generateFileName(fileToSplit, i+1))));
+            outList.add(new BufferedOutputStream(new FileOutputStream("servers/"+(i+1)+"/"+SSUtils.generateFileName(fileToSplit, i+1, random))));
         }
         return outList;
     }
     
-    private ArrayList<MacInputStream> generateInputStreams(String originalFile, ArrayList<BigInteger> servers, SecretKey key) throws NoSuchAlgorithmException, FileNotFoundException, IOException, InvalidKeyException{
+    private ArrayList<MacInputStream> generateInputStreams(String originalFile, ArrayList<BigInteger> servers, SecretKey key, byte[] random) throws NoSuchAlgorithmException, FileNotFoundException, IOException, InvalidKeyException{
         Mac mac;
         ArrayList<MacInputStream> inList = new ArrayList<>();
         //Generazione MacInputStream
         for(int i = 0; i < servers.size(); i++){
             mac = Mac.getInstance("HmacSHA256");
             mac.init(key);
-            BufferedInputStream is = new BufferedInputStream(new FileInputStream("servers/"+servers.get(i).intValue()+"/"+SSUtils.generateFileName(originalFile, servers.get(i).intValue())));
+            BufferedInputStream is = new BufferedInputStream(new FileInputStream("servers/"+servers.get(i).intValue()+"/"+SSUtils.generateFileName(originalFile, servers.get(i).intValue(), random)));
             MacInputStream mis= new MacInputStream(is, mac);
             inList.add(mis);
         }
@@ -193,7 +197,7 @@ public class SharesManager {
     private void evaluateBufferSize(String fileToSplit){
         long fileLength=fileToSplit.length();
         if (fileLength<=32){
-            this.bufferSize=(int)fileLength;
+            this.bufferSize=32;
         }
         else if (fileLength>32 && fileLength<=1024){
             this.bufferSize=32;

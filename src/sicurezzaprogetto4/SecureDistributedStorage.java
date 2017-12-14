@@ -31,7 +31,7 @@ public class SecureDistributedStorage{
         SecretKey key = userKeyChain.getSecretKey("Key/HmacSHA256/Main");
         SharesManager sm = new SharesManager(k, n);
         JSONObject j = sm.generateShares(nomeFile, key); 
-        PrintWriter pw= new PrintWriter(restoreInfoFile);
+        PrintWriter pw= new PrintWriter(restoreInfoFile+".info");
         pw.println(j.toString());
         pw.close();
     }
@@ -41,9 +41,10 @@ public class SecureDistributedStorage{
         SecretKey key = userKeyChain.getSecretKey("Key/HmacSHA256/Main");
         JSONObject restoreInfo= retrieveJSON(restoreInfoFile);
         int k= restoreInfo.getInt("RestoreNum");
-        if(restoreServers.size()<k){
+        //Commentare se si è in fase di testing. Decommentare in caso contrario.
+        /*if(restoreServers.size()<k){
             throw new NotEnoughServersException();
-        }
+        }*/
         BigInteger p = new BigInteger(Base64.getDecoder().decode(restoreInfo.getString("Prime")));
         SharesManager sm = new SharesManager(k, p);
         JSONArray macArray= restoreInfo.getJSONArray("MacList");
@@ -53,7 +54,8 @@ public class SecureDistributedStorage{
         }
         String fileName=restoreInfo.getString("FileName");
         int last = restoreInfo.getInt("LastBufferDim");
-        return sm.reconstructFile(restoreServers, mac,fileName ,last , key);    
+        byte[] random = Base64.getDecoder().decode(restoreInfo.getString("Random"));
+        return sm.reconstructFile(restoreServers, mac,fileName ,last , key, random);    
     }
     
     private static JSONObject retrieveJSON(String restoreInfoFile) throws IOException{

@@ -54,14 +54,13 @@ public class SSUtils {
         return result;
     }
     
-    public static String generateFileName(String fileName, int serverID) throws NoSuchAlgorithmException{
-        //Nome file da salvare sui server come H(nomefileoriginario|IDServer|nomefileoriginario).
+    public static String generateFileName(String fileName, int serverID, byte[] random) throws NoSuchAlgorithmException{
+        //Nome file da salvare sui server come H(randomSeed|IDServer|nomefileoriginario).
         //Tutti questi campi non sono e non devono essere noti ai server.
         MessageDigest md = MessageDigest.getInstance("SHA-256");
-        byte[] concat = SSUtils.arrayConcat(fileName.getBytes(), (""+serverID).getBytes());
+        byte[] concat = SSUtils.arrayConcat(random, (""+serverID).getBytes());
         fileName = Base64.getEncoder().withoutPadding().encodeToString(md.digest(SSUtils.arrayConcat(concat, fileName.getBytes())));
         fileName = fileName.replaceAll("/", "");
         return fileName;
     }
-    
 }
