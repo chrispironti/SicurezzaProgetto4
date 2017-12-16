@@ -19,7 +19,7 @@ public class TestDistributedStorage {
      */
     public static void main(String[] args) throws Exception{
         
-        /*int usersNumber = 5;
+        int usersNumber = 5;
         //Generazione keyring di client random
         System.out.println("**************INIZIO TEST****************");
         System.out.println("Generazione Keyring di "+ usersNumber +" client random...");
@@ -102,7 +102,7 @@ public class TestDistributedStorage {
                 System.out.println("Numero di messaggi alterati: " + fakes.size());
             }   
         }
-        System.out.println("************FINE TEST****************");*/
+        System.out.println("************FINE TEST****************");
         //Si splitta infine documento6 per l'utente6. A mano si va a modificare il file
         //delle share e si verifica che esso non viene ricostruito. Commentare tutto quello
         //prima.
@@ -110,12 +110,12 @@ public class TestDistributedStorage {
                 "keyring/Client6.kc", ("client6").toCharArray(), "clients/client6documento63_5");
         new File("documenti/3_5/documento6.docx").delete();
         //Decommentare dopo aver modificato shares a mano
-        ArrayList<BigInteger> servers = new ArrayList<>();
+        /*ArrayList<BigInteger> servers = new ArrayList<>();
         servers.add(BigInteger.valueOf(1));
         servers.add(BigInteger.valueOf(3));
         servers.add(BigInteger.valueOf(5));
         List<BigInteger> fakes = SecureDistributedStorage.restoreFromShares("clients/client6documento63_5.info",servers, "keyring/Client6.kc", ("client6").toCharArray());
         //Alteriamo due shares
-        System.out.println("Numero di messaggi alterati: " + fakes.size());
+        System.out.println("Numero di messaggi alterati: " + fakes.size());*/
     }
 }
