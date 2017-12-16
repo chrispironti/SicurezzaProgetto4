@@ -21,9 +21,9 @@ public class SSUtils {
     public static byte[] BigIntegerToByteArray(BigInteger bi, int size){
         byte[] toEval = bi.toByteArray();
         byte[] padded = new byte[size];
-        if(toEval.length > size) //Aggiunta padding in toEval fino a eguagliare size
+        if(toEval.length > size) //Rimozione padding in toEval fino a eguagliare size
            toEval = Arrays.copyOfRange(toEval, 1, padded.length+1);
-        if(toEval.length < size){ //Rimozione padding da toEval fino a eguagliare size
+        if(toEval.length < size){ //Aggiunta padding da toEval fino a eguagliare size
            int i = padded.length-toEval.length;
            for(int j = 0; j < toEval.length; j++){
                padded[i] = toEval[j];
