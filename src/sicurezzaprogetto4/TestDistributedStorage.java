@@ -11,21 +11,15 @@ import java.security.Key;
 import javax.crypto.KeyGenerator;
 
 /**
- * Test provare 2,5 e 3,5, per ognuno:
- * Generare le share, Cancello il file originario, Ricombino
- * Provo a ricombinare con chiave Mac sbagliata
- * Provo a ricombinare con più di k shares
- * Provo a ricombinare con meno di k shares (vedere eccezione)
- * Alterare uno dei campi del file 
  */
-public class test {
+public class TestDistributedStorage {
 
     /**
     * @param args the command line arguments
      */
     public static void main(String[] args) throws Exception{
         
-        int usersNumber = 5;
+        /*int usersNumber = 5;
         //Generazione keyring di client random
         System.out.println("**************INIZIO TEST****************");
         System.out.println("Generazione Keyring di "+ usersNumber +" client random...");
@@ -105,12 +99,23 @@ public class test {
                 //Test shares alterate e conseguente fallimento MAC: si simula da programma passando la chiave MAC di un altro utente
                 System.out.println("Test shares alterate");
                 List<BigInteger> fakes = SecureDistributedStorage.restoreFromShares("clients/client"+i+"documento"+i+"3_5.info",servers, "keyring/Client"+ (i+1) +".kc", ("client"+(i+1)).toCharArray());
+                System.out.println("Numero di messaggi alterati: " + fakes.size());
             }   
         }
-        System.out.println("***************FINE TEST******************");
+        System.out.println("************FINE TEST****************");*/
+        //Si splitta infine documento6 per l'utente6. A mano si va a modificare il file
+        //delle share e si verifica che esso non viene ricostruito. Commentare tutto quello
+        //prima.
+        SecureDistributedStorage.distributeShares("documenti/3_5/documento6.docx", 3, 5, 
+                "keyring/Client6.kc", ("client6").toCharArray(), "clients/client6documento63_5");
+        new File("documenti/3_5/documento6.docx").delete();
+        //Decommentare dopo aver modificato shares a mano
+        ArrayList<BigInteger> servers = new ArrayList<>();
+        servers.add(BigInteger.valueOf(1));
+        servers.add(BigInteger.valueOf(3));
+        servers.add(BigInteger.valueOf(5));
+        List<BigInteger> fakes = SecureDistributedStorage.restoreFromShares("clients/client6documento63_5.info",servers, "keyring/Client6.kc", ("client6").toCharArray());
+        //Alteriamo due shares
+        System.out.println("Numero di messaggi alterati: " + fakes.size());
     }
-    
-    //Si splitta infine documento6 per l'utente6. A mano si va a modificare il file
-    //delle share e si verifica che esso non viene ricostruito.
-    
 }

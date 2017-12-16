@@ -25,7 +25,7 @@ import org.json.*;
  * @author Daniele
  */
 public class SharesManager {
-    private int bufferSize = 32;
+    private final int bufferSize = 32;
     private final int modLength = bufferSize*8;
     private final int randomSize = 8;
     public int k;
@@ -49,7 +49,6 @@ public class SharesManager {
         if(n<=0){
             throw new NotEnoughServersException();
         }
-        //evaluateBufferSize(fileToSplit);
         //Inizializzazione stream
         BufferedInputStream is = null;
         ArrayList<BufferedOutputStream> outList = null;
@@ -154,7 +153,7 @@ public class SharesManager {
         HashMap<BigInteger,BigInteger> temp = new HashMap<>();
         byte[] buffer = new byte[this.bufferSize+1];
         //Lettura e combine delle share
-        while(this.bufferSize +1 != inList.get(0).available()){
+        while(this.bufferSize +1 < inList.get(0).available()){
             for(int i = 0; i< servers.size(); i++){
                 inList.get(i).read(buffer, 0, buffer.length);
                 temp.put(servers.get(i), new BigInteger(1, buffer));
@@ -192,24 +191,5 @@ public class SharesManager {
             inList.add(mis);
         }
         return inList;
-    }
-    
-    private void evaluateBufferSize(String fileToSplit){
-        long fileLength=fileToSplit.length();
-        if (fileLength<=32){
-            this.bufferSize=32;
-        }
-        else if (fileLength>32 && fileLength<=1024){
-            this.bufferSize=32;
-        }
-        else if (fileLength>1024 && fileLength<=2048){
-            this.bufferSize=64;
-        }
-        else if (fileLength>2048 && fileLength<=4096){
-            this.bufferSize=128;
-        }
-        else{
-            this.bufferSize=256;
-        }
     }
 }
